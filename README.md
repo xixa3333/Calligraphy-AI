@@ -50,7 +50,7 @@
 
 如果你只是想體驗功能，請依照以下步驟：
 
-1.  **下載檔案**：前往本專案的 **Releases** 頁面下載 `CalligraphyAI.exe`。
+1.  **下載檔案**：前往本專案的 [Releases](https://github.com/xixa3333/Calligraphy-AI/releases) 頁面下載 `CalligraphyAI.exe`。
 2.  **執行程式**：雙擊 `CalligraphyAI.exe`。
     * *注意：由於包含完整 AI 模型，首次啟動可能需要等待 10~30 秒進行解壓縮，請耐心等候。*
     * *系統會跳出一個黑色視窗 (Console)，這是伺服器後台，請勿關閉它。*

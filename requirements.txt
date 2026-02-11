@@ -1,0 +1,6 @@
+torch
+torchvision
+flask
+opencv-contrib-python
+pandas
+scikit-learn

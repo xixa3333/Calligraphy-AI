@@ -67,7 +67,7 @@
 
 ### 1. 環境設定
 ```bash
-git clone [https://github.com/your-username/Calligraphy-AI.git](https://github.com/your-username/Calligraphy-AI.git)
+git clone [https://github.com/xixa3333/Calligraphy-AI](https://github.com/xixa3333/Calligraphy-AI)
 cd Calligraphy-AI
 pip install -r requirements.txt
 

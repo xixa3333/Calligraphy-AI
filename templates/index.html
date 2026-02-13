@@ -6,6 +6,7 @@
     <title>Calligraphy AI - 書法辨識系統</title>
     
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <style>
         :root {
@@ -15,9 +16,9 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: "Microsoft JhengHei", -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             background-color: var(--bg-color);
             color: var(--text-color);
             display: flex;
@@ -26,270 +27,380 @@
             min-height: 100vh;
         }
 
-        h1 {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        p.subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-
-        /* 卡片式設計 */
-        .container {
+        h1 { margin: 10px 0; font-size: 1.5rem; }
+        
+        /* 主要容器 */
+        .main-container {
             background: white;
-            padding: 20px;
+            padding: 15px;
             border-radius: 16px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 400px; /* 手機版寬度限制 */
+            max-width: 500px;
             box-sizing: border-box;
         }
 
-        /* 上傳按鈕美化 */
-        .upload-btn-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-            width: 100%;
+        /* 分頁標籤 (Tabs) */
+        .tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #eee;
         }
-
-        .btn {
-            border: 2px solid var(--primary-color);
-            color: white;
-            background-color: var(--primary-color);
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            width: 100%;
-            cursor: pointer;
-            transition: all 0.3s;
+        .tab {
+            flex: 1;
             text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #888;
+            transition: 0.3s;
+        }
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
         }
 
-        .btn:active {
-            transform: scale(0.98);
-        }
+        /* 內容區塊 */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
 
-        /* 隱藏原本醜醜的 input */
-        .upload-btn-wrapper input[type=file] {
-            font-size: 100px;
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
+        /* === 畫布模式樣式 === */
+        #canvas-container {
+            position: relative;
             width: 100%;
-            height: 100%;
+            height: 300px; /* 手機版高度 */
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            background: white;
+            touch-action: none; /* 防止手機滑動頁面 */
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+        .tools {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .tool-btn {
+            padding: 8px 12px;
+            background: #eee;
+            border: none;
+            border-radius: 6px;
             cursor: pointer;
         }
+        .tool-btn.active { background: var(--primary-color); color: white; }
+        input[type="range"] { flex: 1; }
 
-        /* 預覽與結果區 */
+        /* === 上傳模式樣式 === */
+        .upload-area {
+            border: 2px dashed #aaa;
+            padding: 30px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #fafafa;
+        }
+        .upload-area:hover { background: #f0f8ff; }
+
+        /* === 結果區 === */
         #result-area {
             margin-top: 20px;
-            display: none;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
             text-align: center;
         }
+        .prediction { font-size: 1.8rem; color: var(--primary-color); font-weight: bold; margin: 5px 0; }
+        .confidence { color: #888; font-size: 0.9rem; }
 
-        #preview-image {
-            max-width: 100%;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 15px;
-        }
-
-        .result-box {
-            background: #e3f2fd;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 10px;
-        }
-
-        .result-box h3 {
-            margin: 0;
-            color: var(--primary-color);
-            font-size: 1.5rem;
-        }
-
-        /* 裁剪視窗 (Modal) */
-        #cropper-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
+        /* === 送出按鈕 === */
+        .submit-btn {
             width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 9999;
-            display: none;
-            flex-direction: column;
-        }
-
-        .cropper-container {
-            flex: 1;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .cropper-actions {
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            background: #222;
-        }
-
-        .action-btn {
-            padding: 10px 20px;
-            border-radius: 20px;
+            padding: 12px;
+            background: var(--primary-color);
+            color: white;
             border: none;
-            font-weight: bold;
-            font-size: 1rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            margin-top: 20px;
+            cursor: pointer;
         }
+        .submit-btn:active { transform: scale(0.98); }
+        .loader { display: none; margin: 10px auto; border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+        /* === 裁剪視窗 === */
+        #cropper-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 9999;
+            display: none; flex-direction: column;
+        }
+        .cropper-wrapper { flex: 1; overflow: hidden; position: relative; }
+        .cropper-actions { padding: 15px; display: flex; justify-content: space-between; background: #222; }
+        .c-btn { padding: 10px 20px; border-radius: 20px; border: none; font-weight: bold; }
         .btn-cancel { background: #555; color: white; }
         .btn-confirm { background: var(--primary-color); color: white; }
-
-        /* 讀取動畫 */
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-            display: none;
-        }
-
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
     <h1>🖌️ Calligraphy AI</h1>
-    <p class="subtitle">拍下或上傳字跡，AI 幫你辨識名家風格</p>
 
-    <div class="container">
-        <div class="upload-btn-wrapper">
-            <button class="btn">📷 拍照或從相簿選擇</button>
-            <input type="file" id="fileInput" accept="image/*">
+    <div class="main-container">
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('draw')">✍️ 手寫畫板</div>
+            <div class="tab" onclick="switchTab('upload')">📷 拍照上傳</div>
         </div>
 
+        <div id="tab-draw" class="tab-content active">
+            <div id="canvas-container">
+                <canvas id="drawing-board"></canvas>
+            </div>
+            
+            <div class="tools">
+                <span>筆刷:</span>
+                <input type="range" id="brush-size" min="1" max="20" value="8">
+                <button class="tool-btn" onclick="clearCanvas()"><i class="fas fa-trash"></i> 清除</button>
+                <button class="tool-btn active" id="btn-pen" onclick="setTool('pen')">筆</button>
+                <button class="tool-btn" id="btn-eraser" onclick="setTool('eraser')">擦</button>
+            </div>
+        </div>
+
+        <div id="tab-upload" class="tab-content">
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <i class="fas fa-camera fa-3x" style="color:#ccc; margin-bottom:10px;"></i>
+                <p>點擊拍照或選擇圖片</p>
+                <input type="file" id="fileInput" accept="image/*" style="display:none">
+            </div>
+            <img id="upload-preview" src="" style="max-width:100%; display:none; margin-top:10px; border-radius:8px;">
+        </div>
+
+        <button class="submit-btn" onclick="submitData()">✨ 開始辨識</button>
         <div class="loader" id="loader"></div>
 
-        <div id="result-area">
-            <p>您的字跡：</p>
-            <img id="preview-image" src="" alt="Preview">
-            
-            <div class="result-box">
-                <p style="margin:0; font-size:0.9rem; color:#666;">辨識結果</p>
-                <h3 id="prediction-text">--</h3>
-                <p id="confidence-text" style="font-size:0.8rem; color:#888;">信心水準: --%</p>
-            </div>
+        <div id="result-area" style="display:none;">
+            <p style="margin:0; color:#666;">辨識結果</p>
+            <div class="prediction" id="pred-text">--</div>
+            <div class="confidence" id="conf-text">信心水準: --%</div>
         </div>
     </div>
 
     <div id="cropper-modal">
-        <div class="cropper-container">
+        <div class="cropper-wrapper">
             <img id="image-to-crop" src="" style="max-width: 100%;">
         </div>
         <div class="cropper-actions">
-            <button class="action-btn btn-cancel" onclick="closeCropper()">取消</button>
-            <button class="action-btn btn-confirm" onclick="cropAndUpload()">確認並辨識</button>
+            <button class="c-btn btn-cancel" onclick="closeCropper()">重選</button>
+            <button class="c-btn btn-confirm" onclick="confirmCrop()">確認裁剪</button>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script>
+        let currentMode = 'draw'; // 'draw' or 'upload'
+        let uploadBlob = null; // 儲存裁剪後的圖片資料
+
+        // === 1. 畫板邏輯 ===
+        const canvas = document.getElementById('drawing-board');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let brushSize = 8;
+        let tool = 'pen'; // 'pen' or 'eraser'
+
+        // 初始化畫布大小 (RWD)
+        function resizeCanvas() {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            ctx.fillStyle = "white"; // 背景設為白色
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+        }
+        window.addEventListener('resize', resizeCanvas);
+        // 延遲執行以確保容器已渲染
+        setTimeout(resizeCanvas, 100);
+
+        // 畫筆設定
+        document.getElementById('brush-size').addEventListener('input', (e) => brushSize = e.target.value);
+
+        function setTool(t) {
+            tool = t;
+            document.getElementById('btn-pen').classList.toggle('active', t === 'pen');
+            document.getElementById('btn-eraser').classList.toggle('active', t === 'eraser');
+        }
+
+        function clearCanvas() {
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // 繪圖事件 (支援滑鼠與觸控)
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function startDraw(e) {
+            e.preventDefault();
+            isDrawing = true;
+            const pos = getPos(e);
+            lastX = pos.x;
+            lastY = pos.y;
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            const pos = getPos(e);
+            
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.lineWidth = brushSize;
+            ctx.strokeStyle = tool === 'eraser' ? 'white' : 'black';
+            ctx.stroke();
+
+            lastX = pos.x;
+            lastY = pos.y;
+        }
+
+        function endDraw() { isDrawing = false; }
+
+        // 綁定事件
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('mouseout', endDraw);
+        
+        canvas.addEventListener('touchstart', startDraw, {passive: false});
+        canvas.addEventListener('touchmove', draw, {passive: false});
+        canvas.addEventListener('touchend', endDraw);
+
+
+        // === 2. 上傳與裁剪邏輯 ===
         const fileInput = document.getElementById('fileInput');
         const cropperModal = document.getElementById('cropper-modal');
         const imageToCrop = document.getElementById('image-to-crop');
-        const previewImage = document.getElementById('preview-image');
-        const resultArea = document.getElementById('result-area');
-        const predictionText = document.getElementById('prediction-text');
-        const confidenceText = document.getElementById('confidence-text');
-        const loader = document.getElementById('loader');
-
+        const uploadPreview = document.getElementById('upload-preview');
         let cropper = null;
 
-        // 當使用者選好圖片時
         fileInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(event) {
-                    // 開啟裁剪視窗
-                    imageToCrop.src = event.target.result;
+                reader.onload = function(evt) {
+                    imageToCrop.src = evt.target.result;
                     cropperModal.style.display = 'flex';
-                    
-                    // 初始化 Cropper
-                    if (cropper) { cropper.destroy(); }
-                    cropper = new Cropper(imageToCrop, {
-                        viewMode: 1,
-                        dragMode: 'move',
-                        aspectRatio: NaN, // 自由比例
-                        autoCropArea: 0.8,
-                    });
+                    if (cropper) cropper.destroy();
+                    cropper = new Cropper(imageToCrop, { viewMode: 1, autoCropArea: 0.8 });
                 };
                 reader.readAsDataURL(file);
             }
-            // 清空 input 避免重複選擇同一張圖沒反應
             fileInput.value = '';
         });
 
-        function closeCropper() {
-            cropperModal.style.display = 'none';
-            if (cropper) { cropper.destroy(); }
+        function closeCropper() { cropperModal.style.display = 'none'; }
+
+        function confirmCrop() {
+            if (!cropper) return;
+            // 轉成 DataURL (Base64) 方便顯示與傳送
+            const croppedDataUrl = cropper.getCroppedCanvas({
+                maxWidth: 800, maxHeight: 800, fillColor: '#fff'
+            }).toDataURL('image/jpeg');
+
+            uploadPreview.src = croppedDataUrl;
+            uploadPreview.style.display = 'block';
+            
+            // 儲存這個 DataURL 準備傳送
+            uploadBlob = croppedDataUrl; 
+            
+            closeCropper();
         }
 
-        // 核心功能：裁剪並上傳
-        function cropAndUpload() {
-            if (!cropper) return;
+
+        // === 3. 整合與送出 (修復 415 錯誤的關鍵) ===
+        function switchTab(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if(mode === 'draw') {
+                document.querySelectorAll('.tab')[0].classList.add('active');
+                document.getElementById('tab-draw').classList.add('active');
+                setTimeout(resizeCanvas, 50); // 切換回來時重繪以防跑版
+            } else {
+                document.querySelectorAll('.tab')[1].classList.add('active');
+                document.getElementById('tab-upload').classList.add('active');
+            }
+        }
+
+        function submitData() {
+            const loader = document.getElementById('loader');
+            const resultArea = document.getElementById('result-area');
+            const predText = document.getElementById('pred-text');
+            const confText = document.getElementById('conf-text');
+
+            let finalImageBase64 = '';
+
+            // 判斷當前模式，抓取對應的圖片資料
+            if (currentMode === 'draw') {
+                // 從畫布抓取 Base64
+                finalImageBase64 = canvas.toDataURL('image/png');
+            } else {
+                // 從上傳區抓取
+                if (!uploadBlob) {
+                    alert('請先選擇並裁剪圖片');
+                    return;
+                }
+                finalImageBase64 = uploadBlob;
+            }
 
             // 顯示讀取中
-            cropperModal.style.display = 'none';
             loader.style.display = 'block';
             resultArea.style.display = 'none';
 
-            // 1. 取得裁剪後的 Canvas
-            cropper.getCroppedCanvas({
-                maxWidth: 800, // 限制最大寬度，加速上傳
-                maxHeight: 800
-            }).toBlob((blob) => {
-                // 2. 準備上傳資料
-                const formData = new FormData();
-                formData.append('file', blob, 'cropped.jpg'); // 將 blob 偽裝成檔案上傳
-
-                // 顯示預覽圖
-                previewImage.src = URL.createObjectURL(blob);
-
-                // 3. 發送 API 請求
-                fetch('/predict', {
-                    method: 'POST',
-                    body: formData
+            // 🌟 關鍵修正：這裡改用 fetch 發送 JSON，解決 415 錯誤
+            // 這樣你的後端 app.py 可以繼續使用 request.get_json() 接收，不用改後端！
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json' // 告訴後端這是 JSON
+                },
+                body: JSON.stringify({
+                    image: finalImageBase64 // 統一包成 JSON 格式
                 })
-                .then(response => response.json())
-                .then(data => {
-                    loader.style.display = 'none';
-                    resultArea.style.display = 'block';
-
-                    if (data.error) {
-                        predictionText.innerText = "錯誤";
-                        confidenceText.innerText = data.error;
-                    } else {
-                        predictionText.innerText = `${data.author} (${data.style})`;
-                        confidenceText.innerText = `信心水準: ${data.confidence}`;
-                    }
-                })
-                .catch(error => {
-                    loader.style.display = 'none';
-                    alert('上傳失敗，請檢查網路連線');
-                    console.error('Error:', error);
-                });
-            }, 'image/jpeg', 0.8); // 壓縮品質 0.8
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Server response was not ok.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                loader.style.display = 'none';
+                resultArea.style.display = 'block';
+                if (data.error) {
+                    predText.innerText = "錯誤";
+                    confText.innerText = data.error;
+                } else {
+                    predText.innerText = `${data.author} (${data.style})`;
+                    confText.innerText = `信心水準: ${data.confidence}`;
+                }
+            })
+            .catch(error => {
+                loader.style.display = 'none';
+                alert('辨識失敗，請檢查網路或稍後再試。\n' + error);
+                console.error(error);
+            });
         }
     </script>
 </body>

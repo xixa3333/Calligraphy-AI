@@ -1,187 +1,296 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
-    <title>書法手寫辨識</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calligraphy AI - 書法辨識系統</title>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    
     <style>
-        body { text-align: center; font-family: "Microsoft JhengHei", Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
-        canvas { border: 2px solid #333; background: white; cursor: crosshair; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .controls { margin-top: 20px; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 0 5px; border-radius: 4px; border: 1px solid #ccc; }
-        .btn-upload { background-color: #5cb85c; color: white; border: none; }
-        .btn-predict { background-color: #0275d8; color: white; border: none; }
-        
-        /* 佈局容器 */
-        .container { display: flex; justify-content: center; align-items: flex-start; gap: 30px; margin-top: 20px; }
-        
-        /* 右側面板樣式 */
-        #result-panel { 
-            width: 350px; text-align: left; background: white; padding: 25px; 
-            border-radius: 8px; border: 1px solid #ddd; min-height: 400px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        :root {
+            --primary-color: #4a90e2;
+            --bg-color: #f5f7fa;
+            --text-color: #333;
         }
-        .rank-item { margin: 10px 0; font-size: 16px; display: flex; justify-content: space-between; }
-        .rank-name { font-weight: 500; }
-        .rank-value { color: #666; }
-        
-        /* 頁腳資料來源 */
-        .footer { margin-top: 50px; font-size: 14px; color: #888; border-top: 1px solid #ddd; padding-top: 20px; }
-        .footer a { color: #0275d8; text-decoration: none; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        p.subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        /* 卡片式設計 */
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px; /* 手機版寬度限制 */
+            box-sizing: border-box;
+        }
+
+        /* 上傳按鈕美化 */
+        .upload-btn-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .btn {
+            border: 2px solid var(--primary-color);
+            color: white;
+            background-color: var(--primary-color);
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        /* 隱藏原本醜醜的 input */
+        .upload-btn-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        /* 預覽與結果區 */
+        #result-area {
+            margin-top: 20px;
+            display: none;
+            text-align: center;
+        }
+
+        #preview-image {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+
+        .result-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .result-box h3 {
+            margin: 0;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+        }
+
+        /* 裁剪視窗 (Modal) */
+        #cropper-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+        }
+
+        .cropper-container {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .cropper-actions {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            background: #222;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: none;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .btn-cancel { background: #555; color: white; }
+        .btn-confirm { background: var(--primary-color); color: white; }
+
+        /* 讀取動畫 */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <h1>書法手寫辨識</h1>
-    <p>請在下方區域寫字，或上傳圖片進行辨識：</p>
-    請注意：本系統僅支援「單個字」辨識！<br>
 
-    <div style="display: flex; justify-content: center; align-items: flex-start; gap: 30px; margin-top: 20px;">
-        
-        <div>
-            <canvas id="canvas" width="400" height="400"></canvas>
-            <div class="controls">
-                <button onclick="clearCanvas()">清除</button>
-                <button onclick="predict()">送出辨識</button>
-                <input type="file" id="imageInput" accept="image/*" capture="camera" style="display:none;">
-                <button onclick="document.getElementById('imageInput').click()">拍照或上傳字跡</button>
-                <br><br>
-                <span>畫筆大小: </span>
-                <input type="range" id="sizeRange" min="1" max="30" value="5" oninput="updateSize(this.value)">
-                <span id="sizeValue">5</span>
-            </div>
+    <h1>🖌️ Calligraphy AI</h1>
+    <p class="subtitle">拍下或上傳字跡，AI 幫你辨識名家風格</p>
+
+    <div class="container">
+        <div class="upload-btn-wrapper">
+            <button class="btn">📷 拍照或從相簿選擇</button>
+            <input type="file" id="fileInput" accept="image/*">
         </div>
 
-        <div id="result-panel" style="width: 350px; text-align: left; background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; min-height: 400px;">
-            <div id="main-result" style="font-size: 22px; font-weight: bold; color: #d9534f; margin-bottom: 20px; border-bottom: 2px solid #f4f4f4; padding-bottom: 10px;">
-                等待辨識...
+        <div class="loader" id="loader"></div>
+
+        <div id="result-area">
+            <p>您的字跡：</p>
+            <img id="preview-image" src="" alt="Preview">
+            
+            <div class="result-box">
+                <p style="margin:0; font-size:0.9rem; color:#666;">辨識結果</p>
+                <h3 id="prediction-text">--</h3>
+                <p id="confidence-text" style="font-size:0.8rem; color:#888;">信心水準: --%</p>
             </div>
-            <div id="details">
-                </div>
         </div>
     </div>
 
-    <div class="footer">
-        <p>資料來源：<a href="https://www.kaggle.com/datasets/yuanhaowang486/chinese-calligraphy-styles-by-calligraphers" target="_blank">Kaggle - Chinese Calligraphy Styles by Calligraphers</a></p>
+    <div id="cropper-modal">
+        <div class="cropper-container">
+            <img id="image-to-crop" src="" style="max-width: 100%;">
+        </div>
+        <div class="cropper-actions">
+            <button class="action-btn btn-cancel" onclick="closeCropper()">取消</button>
+            <button class="action-btn btn-confirm" onclick="cropAndUpload()">確認並辨識</button>
+        </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    let drawing = false;
+        const fileInput = document.getElementById('fileInput');
+        const cropperModal = document.getElementById('cropper-modal');
+        const imageToCrop = document.getElementById('image-to-crop');
+        const previewImage = document.getElementById('preview-image');
+        const resultArea = document.getElementById('result-area');
+        const predictionText = document.getElementById('prediction-text');
+        const confidenceText = document.getElementById('confidence-text');
+        const loader = document.getElementById('loader');
 
-    // 初始化畫布
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = "black";
-    ctx.lineWidth = 5;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+        let cropper = null;
 
-    function updateSize(val) {
-        ctx.lineWidth = val;
-        document.getElementById('sizeValue').innerText = val;
-    }
-
-    // --- 新增：處理檔案上傳邏輯 ---
-    function handleFileUpload(input) {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    // 1. 先清空畫布
-                    clearCanvas();
-                    // 2. 將圖片繪製到畫布上 (並縮放到適合 400x400 的大小)
-                    ctx.drawImage(img, 0, 0, 400, 400);
-                    // 3. 直接觸發辨識
-                    predict();
+        // 當使用者選好圖片時
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    // 開啟裁剪視窗
+                    imageToCrop.src = event.target.result;
+                    cropperModal.style.display = 'flex';
+                    
+                    // 初始化 Cropper
+                    if (cropper) { cropper.destroy(); }
+                    cropper = new Cropper(imageToCrop, {
+                        viewMode: 1,
+                        dragMode: 'move',
+                        aspectRatio: NaN, // 自由比例
+                        autoCropArea: 0.8,
+                    });
                 };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(input.files[0]);
-            input.value = '';
-        }
-    }
-
-    // 繪圖邏輯保持不變...
-    canvas.onmousedown = (e) => {
-        drawing = true;
-        ctx.beginPath();
-        ctx.moveTo(e.offsetX, e.offsetY);
-    };
-    canvas.onmousemove = (e) => {
-        if (!drawing) return;
-        ctx.lineTo(e.offsetX, e.offsetY);
-        ctx.stroke();
-    };
-    canvas.onmouseup = () => { drawing = false; ctx.closePath(); };
-    canvas.onmouseleave = () => { drawing = false; };
-
-    function clearCanvas() {
-        ctx.fillStyle = "white";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        // 只清空內容，保留節點
-        const mainRes = document.getElementById('main-result');
-        const details = document.getElementById('details');
-        if (mainRes) mainRes.innerText = "";
-        if (details) details.innerHTML = "";
-    }
-
-    function predict() {
-        // --- [新增] 檢查畫布是否為空 ---
-        const canvasData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-        let isCanvasEmpty = true;
-
-        // RGBA 格式，每 4 個數字代表一個像素 (R, G, B, A)
-        // 因為我們是白底黑字，只要發現任何一個像素不是白色 (255, 255, 255)，就代表有畫東西
-        for (let i = 0; i < canvasData.length; i += 4) {
-            if (canvasData[i] < 250 || canvasData[i+1] < 250 || canvasData[i+2] < 250) {
-                isCanvasEmpty = false;
-                break;
+                reader.readAsDataURL(file);
             }
-        }
-
-        if (isCanvasEmpty) {
-            alert("畫布是空的，請先寫字或上傳圖片喔！");
-            return; // 中止執行，不送出辨識
-        }
-        // ----------------------------
-
-        // 辨識中提示
-        document.getElementById('main-result').innerText = "辨識中...";
-        
-        const dataURL = canvas.toDataURL('image/png');
-        fetch('/predict', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: dataURL })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                const detailsDiv = document.getElementById('details');
-                detailsDiv.innerHTML = "";
-
-                let html = "<div style='display: flex; gap: 40px;'>";
-                html += "<div><strong>作者相似度：</strong><br>";
-                data.top3_authors.forEach((item, i) => {
-                    html += `${i+1}. ${item.name} (${item.confidence})<br>`;
-                });
-                html += "</div>";
-
-                html += "<div><strong>書體相似度：</strong><br>";
-                data.top3_styles.forEach((item, i) => {
-                    html += `${i+1}. ${item.name} (${item.confidence})<br>`;
-                });
-                html += "</div></div>";
-
-                detailsDiv.innerHTML = html;
-                document.getElementById('main-result').innerText = 
-                    `辨識完成！最接近：${data.top3_authors[0].name} (${data.top3_styles[0].name})`;
-            } else {
-                document.getElementById('main-result').innerText = "辨識失敗";
-                alert("錯誤: " + data.error);
-            }
+            // 清空 input 避免重複選擇同一張圖沒反應
+            fileInput.value = '';
         });
-    }
+
+        function closeCropper() {
+            cropperModal.style.display = 'none';
+            if (cropper) { cropper.destroy(); }
+        }
+
+        // 核心功能：裁剪並上傳
+        function cropAndUpload() {
+            if (!cropper) return;
+
+            // 顯示讀取中
+            cropperModal.style.display = 'none';
+            loader.style.display = 'block';
+            resultArea.style.display = 'none';
+
+            // 1. 取得裁剪後的 Canvas
+            cropper.getCroppedCanvas({
+                maxWidth: 800, // 限制最大寬度，加速上傳
+                maxHeight: 800
+            }).toBlob((blob) => {
+                // 2. 準備上傳資料
+                const formData = new FormData();
+                formData.append('file', blob, 'cropped.jpg'); // 將 blob 偽裝成檔案上傳
+
+                // 顯示預覽圖
+                previewImage.src = URL.createObjectURL(blob);
+
+                // 3. 發送 API 請求
+                fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loader.style.display = 'none';
+                    resultArea.style.display = 'block';
+
+                    if (data.error) {
+                        predictionText.innerText = "錯誤";
+                        confidenceText.innerText = data.error;
+                    } else {
+                        predictionText.innerText = `${data.author} (${data.style})`;
+                        confidenceText.innerText = `信心水準: ${data.confidence}`;
+                    }
+                })
+                .catch(error => {
+                    loader.style.display = 'none';
+                    alert('上傳失敗，請檢查網路連線');
+                    console.error('Error:', error);
+                });
+            }, 'image/jpeg', 0.8); // 壓縮品質 0.8
+        }
     </script>
 </body>
 </html>

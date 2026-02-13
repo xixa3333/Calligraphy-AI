@@ -34,7 +34,7 @@
 
         h1 { margin: 10px 0 5px 0; font-size: 1.5rem; text-align: center; }
 
-        /* 新增：提示訊息樣式 */
+        /* 提示訊息樣式 */
         .hint-box {
             background-color: var(--warning-bg);
             color: var(--warning-text);
@@ -55,7 +55,8 @@
             border-radius: 16px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 500px;
+            /* 修改 1: 稍微放寬最大寬度，避免電腦版字被卡掉 */
+            max-width: 600px;
             box-sizing: border-box;
         }
 
@@ -96,12 +97,12 @@
         .result-columns {
             display: flex;
             gap: 15px;
-            flex-wrap: wrap; /* 手機版會自動換行 */
+            flex-wrap: wrap; 
         }
         
         .result-group {
             flex: 1;
-            min-width: 200px; /* 手機版寬度 */
+            min-width: 200px; 
             background: #f8f9fa;
             border-radius: 10px;
             padding: 10px;
@@ -128,6 +129,7 @@
             text-align: center;
             margin-right: 5px;
             color: #888;
+            flex-shrink: 0; /* 防止排名數字被擠壓 */
         }
         /* 前三名顏色 */
         .rank-row:nth-child(1) .rank-num { color: var(--gold); font-size: 1.2rem; }
@@ -137,18 +139,20 @@
         .rank-name {
             flex: 1;
             font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            /* 修改 2: 允許文字換行，並移除強制截斷 (...) */
+            white-space: normal; 
+            line-height: 1.2;
+            margin-right: 5px;
         }
 
         .progress-bg {
-            width: 60px;
+            width: 50px; /* 稍微縮小一點進度條寬度，讓文字有更多空間 */
             height: 6px;
             background: #e0e0e0;
             border-radius: 3px;
-            margin: 0 8px;
+            margin: 0 5px;
             overflow: hidden;
+            flex-shrink: 0;
         }
         
         .progress-bar {
@@ -157,7 +161,6 @@
             border-radius: 3px;
         }
         
-        /* 第一名的 Bar 變色強調 */
         .rank-row:nth-child(1) .progress-bar { background: #ff9800; }
 
         .rank-score {
@@ -165,7 +168,8 @@
             text-align: right;
             font-size: 0.8rem;
             color: #666;
-            font-family: monospace; /* 數字對齊較美觀 */
+            font-family: monospace;
+            flex-shrink: 0;
         }
 
         /* 按鈕與讀取 */
@@ -328,6 +332,12 @@
             currentMode = mode;
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            // 修改 3: 切換時隱藏結果區，並清空內容
+            document.getElementById('result-area').style.display = 'none';
+            document.getElementById('author-list').innerHTML = '';
+            document.getElementById('style-list').innerHTML = '';
+
             if(mode === 'draw') {
                 document.querySelectorAll('.tab')[0].classList.add('active');
                 document.getElementById('tab-draw').classList.add('active');
@@ -338,7 +348,6 @@
             }
         }
 
-        // === 核心：送出並顯示 Top 3 ===
         function submitData() {
             const loader = document.getElementById('loader');
             const resultArea = document.getElementById('result-area');
@@ -360,12 +369,10 @@
                 resultArea.style.display = 'block';
 
                 if (data.success) {
-                    // 修正：這裡的 items 是 app.py 回傳的格式 [{'name': '王羲之', 'confidence': '99.00%'}, ...]
                     const renderList = (items) => {
                         return items.map((item, index) => {
                             let name = item.name || "未知";
                             let confStr = item.confidence || "0%";
-                            // 將 "99.00%" 轉為數字 99.00 用於 CSS width
                             let percentageVal = parseFloat(confStr); 
                             
                             return `

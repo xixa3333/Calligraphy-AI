@@ -1,6 +1,9 @@
 torch
 torchvision
 flask
-opencv-contrib-python
+flask-cors
+opencv-contrib-python-headless
+numpy
+Pillow
 pandas
 scikit-learn

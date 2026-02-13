@@ -13,6 +13,9 @@
             --primary-color: #4a90e2;
             --bg-color: #f5f7fa;
             --text-color: #333;
+            --gold: #ffc107;
+            --silver: #aaa;
+            --bronze: #cd7f32;
         }
 
         body {
@@ -27,9 +30,9 @@
             min-height: 100vh;
         }
 
-        h1 { margin: 10px 0; font-size: 1.5rem; }
+        h1 { margin: 10px 0; font-size: 1.5rem; text-align: center; }
         
-        /* 主要容器 */
+        /* 卡片容器 */
         .main-container {
             background: white;
             padding: 15px;
@@ -40,105 +43,124 @@
             box-sizing: border-box;
         }
 
-        /* 分頁標籤 (Tabs) */
-        .tabs {
-            display: flex;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #eee;
-        }
-        .tab {
-            flex: 1;
-            text-align: center;
-            padding: 10px;
-            cursor: pointer;
-            font-weight: bold;
-            color: #888;
-            transition: 0.3s;
-        }
-        .tab.active {
-            color: var(--primary-color);
-            border-bottom: 3px solid var(--primary-color);
-        }
-
-        /* 內容區塊 */
+        /* Tabs */
+        .tabs { display: flex; margin-bottom: 15px; border-bottom: 2px solid #eee; }
+        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; color: #888; font-weight: bold; }
+        .tab.active { color: var(--primary-color); border-bottom: 3px solid var(--primary-color); }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        /* === 畫布模式樣式 === */
+        /* 畫布 */
         #canvas-container {
-            position: relative;
-            width: 100%;
-            height: 300px; /* 手機版高度 */
-            border: 2px dashed #ccc;
-            border-radius: 8px;
-            background: white;
-            touch-action: none; /* 防止手機滑動頁面 */
-            overflow: hidden;
+            position: relative; width: 100%; height: 300px;
+            border: 2px dashed #ccc; border-radius: 8px; background: white;
+            touch-action: none; overflow: hidden;
         }
-        canvas {
-            display: block;
-            cursor: crosshair;
-        }
-        .tools {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 10px;
-            flex-wrap: wrap;
-        }
-        .tool-btn {
-            padding: 8px 12px;
-            background: #eee;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-        }
+        canvas { display: block; cursor: crosshair; }
+        .tools { display: flex; gap: 10px; margin-top: 10px; align-items: center; flex-wrap: wrap; }
+        .tool-btn { padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; background: #eee; }
         .tool-btn.active { background: var(--primary-color); color: white; }
         input[type="range"] { flex: 1; }
 
-        /* === 上傳模式樣式 === */
+        /* 上傳 */
         .upload-area {
-            border: 2px dashed #aaa;
-            padding: 30px;
-            text-align: center;
-            border-radius: 8px;
-            cursor: pointer;
-            background: #fafafa;
+            border: 2px dashed #aaa; padding: 30px; text-align: center;
+            border-radius: 8px; cursor: pointer; background: #fafafa;
         }
-        .upload-area:hover { background: #f0f8ff; }
+        #upload-preview { max-width: 100%; display: none; margin-top: 10px; border-radius: 8px; }
 
-        /* === 結果區 === */
+        /* === 結果顯示區 (重寫支援 Top 3) === */
         #result-area {
             margin-top: 20px;
-            padding-top: 20px;
+            padding-top: 10px;
             border-top: 1px solid #eee;
+            display: none; /* 預設隱藏 */
+        }
+        
+        .result-columns {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap; /* 手機版會自動換行 */
+        }
+        
+        .result-group {
+            flex: 1;
+            min-width: 200px; /* 手機版寬度 */
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        
+        .result-group h4 {
+            margin: 0 0 10px 0;
             text-align: center;
+            color: var(--primary-color);
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 5px;
         }
-        .prediction { font-size: 1.8rem; color: var(--primary-color); font-weight: bold; margin: 5px 0; }
-        .confidence { color: #888; font-size: 0.9rem; }
 
-        /* === 送出按鈕 === */
-        .submit-btn {
-            width: 100%;
-            padding: 12px;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            margin-top: 20px;
-            cursor: pointer;
+        .rank-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
         }
-        .submit-btn:active { transform: scale(0.98); }
+
+        .rank-num {
+            width: 20px;
+            font-weight: bold;
+            text-align: center;
+            margin-right: 5px;
+            color: #888;
+        }
+        /* 前三名顏色 */
+        .rank-row:nth-child(1) .rank-num { color: var(--gold); font-size: 1.1rem; }
+        .rank-row:nth-child(2) .rank-num { color: var(--silver); }
+        .rank-row:nth-child(3) .rank-num { color: var(--bronze); }
+
+        .rank-name {
+            flex: 1;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .progress-bg {
+            width: 60px;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            margin: 0 8px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: var(--primary-color);
+            border-radius: 3px;
+        }
+        
+        /* 第一名的 Bar 變色強調 */
+        .rank-row:nth-child(1) .progress-bar { background: #ff9800; }
+
+        .rank-score {
+            width: 35px;
+            text-align: right;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        /* 按鈕與讀取 */
+        .submit-btn {
+            width: 100%; padding: 12px; background: var(--primary-color); color: white;
+            border: none; border-radius: 8px; font-size: 1.1rem; margin-top: 20px; cursor: pointer;
+        }
         .loader { display: none; margin: 10px auto; border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* === 裁剪視窗 === */
-        #cropper-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 9999;
-            display: none; flex-direction: column;
-        }
+        /* 裁剪視窗 */
+        #cropper-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: none; flex-direction: column; }
         .cropper-wrapper { flex: 1; overflow: hidden; position: relative; }
         .cropper-actions { padding: 15px; display: flex; justify-content: space-between; background: #222; }
         .c-btn { padding: 10px 20px; border-radius: 20px; border: none; font-weight: bold; }
@@ -157,13 +179,9 @@
         </div>
 
         <div id="tab-draw" class="tab-content active">
-            <div id="canvas-container">
-                <canvas id="drawing-board"></canvas>
-            </div>
-            
+            <div id="canvas-container"><canvas id="drawing-board"></canvas></div>
             <div class="tools">
-                <span>筆刷:</span>
-                <input type="range" id="brush-size" min="1" max="20" value="8">
+                <span>筆刷:</span> <input type="range" id="brush-size" min="1" max="20" value="8">
                 <button class="tool-btn" onclick="clearCanvas()"><i class="fas fa-trash"></i> 清除</button>
                 <button class="tool-btn active" id="btn-pen" onclick="setTool('pen')">筆</button>
                 <button class="tool-btn" id="btn-eraser" onclick="setTool('eraser')">擦</button>
@@ -176,121 +194,83 @@
                 <p>點擊拍照或選擇圖片</p>
                 <input type="file" id="fileInput" accept="image/*" style="display:none">
             </div>
-            <img id="upload-preview" src="" style="max-width:100%; display:none; margin-top:10px; border-radius:8px;">
+            <img id="upload-preview" src="">
         </div>
 
         <button class="submit-btn" onclick="submitData()">✨ 開始辨識</button>
         <div class="loader" id="loader"></div>
 
-        <div id="result-area" style="display:none;">
-            <p style="margin:0; color:#666;">辨識結果</p>
-            <div class="prediction" id="pred-text">--</div>
-            <div class="confidence" id="conf-text">信心水準: --%</div>
+        <div id="result-area">
+            <div class="result-columns">
+                <div class="result-group">
+                    <h4>書法家預測</h4>
+                    <div id="author-list"></div>
+                </div>
+                <div class="result-group">
+                    <h4>字體風格</h4>
+                    <div id="style-list"></div>
+                </div>
+            </div>
         </div>
     </div>
 
     <div id="cropper-modal">
-        <div class="cropper-wrapper">
-            <img id="image-to-crop" src="" style="max-width: 100%;">
-        </div>
+        <div class="cropper-wrapper"><img id="image-to-crop" src=""></div>
         <div class="cropper-actions">
             <button class="c-btn btn-cancel" onclick="closeCropper()">重選</button>
-            <button class="c-btn btn-confirm" onclick="confirmCrop()">確認裁剪</button>
+            <button class="c-btn btn-confirm" onclick="confirmCrop()">確認</button>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script>
-        let currentMode = 'draw'; // 'draw' or 'upload'
-        let uploadBlob = null; // 儲存裁剪後的圖片資料
+        let currentMode = 'draw';
+        let uploadBlob = null;
 
-        // === 1. 畫板邏輯 ===
+        // === 畫布邏輯 ===
         const canvas = document.getElementById('drawing-board');
         const ctx = canvas.getContext('2d');
         const container = document.getElementById('canvas-container');
-        let isDrawing = false;
-        let lastX = 0;
-        let lastY = 0;
-        let brushSize = 8;
-        let tool = 'pen'; // 'pen' or 'eraser'
+        let isDrawing = false, lastX = 0, lastY = 0, brushSize = 8, tool = 'pen';
 
-        // 初始化畫布大小 (RWD)
         function resizeCanvas() {
             canvas.width = container.clientWidth;
             canvas.height = container.clientHeight;
-            ctx.fillStyle = "white"; // 背景設為白色
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.lineCap = "round";
-            ctx.lineJoin = "round";
+            ctx.fillStyle = "white"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.lineCap = "round"; ctx.lineJoin = "round";
         }
         window.addEventListener('resize', resizeCanvas);
-        // 延遲執行以確保容器已渲染
         setTimeout(resizeCanvas, 100);
 
-        // 畫筆設定
         document.getElementById('brush-size').addEventListener('input', (e) => brushSize = e.target.value);
-
         function setTool(t) {
             tool = t;
             document.getElementById('btn-pen').classList.toggle('active', t === 'pen');
             document.getElementById('btn-eraser').classList.toggle('active', t === 'eraser');
         }
-
-        function clearCanvas() {
-            ctx.fillStyle = "white";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-
-        // 繪圖事件 (支援滑鼠與觸控)
+        function clearCanvas() { ctx.fillStyle = "white"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+        
         function getPos(e) {
             const rect = canvas.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             return { x: clientX - rect.left, y: clientY - rect.top };
         }
-
-        function startDraw(e) {
-            e.preventDefault();
-            isDrawing = true;
-            const pos = getPos(e);
-            lastX = pos.x;
-            lastY = pos.y;
-        }
-
+        function startDraw(e) { e.preventDefault(); isDrawing = true; const pos = getPos(e); lastX = pos.x; lastY = pos.y; }
         function draw(e) {
-            if (!isDrawing) return;
-            e.preventDefault();
-            const pos = getPos(e);
-            
-            ctx.beginPath();
-            ctx.moveTo(lastX, lastY);
-            ctx.lineTo(pos.x, pos.y);
-            ctx.lineWidth = brushSize;
-            ctx.strokeStyle = tool === 'eraser' ? 'white' : 'black';
-            ctx.stroke();
-
-            lastX = pos.x;
-            lastY = pos.y;
+            if (!isDrawing) return; e.preventDefault(); const pos = getPos(e);
+            ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(pos.x, pos.y);
+            ctx.lineWidth = brushSize; ctx.strokeStyle = tool === 'eraser' ? 'white' : 'black'; ctx.stroke();
+            lastX = pos.x; lastY = pos.y;
         }
-
         function endDraw() { isDrawing = false; }
+        canvas.addEventListener('mousedown', startDraw); canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('touchstart', startDraw, {passive: false}); canvas.addEventListener('touchmove', draw, {passive: false}); canvas.addEventListener('touchend', endDraw);
 
-        // 綁定事件
-        canvas.addEventListener('mousedown', startDraw);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', endDraw);
-        canvas.addEventListener('mouseout', endDraw);
-        
-        canvas.addEventListener('touchstart', startDraw, {passive: false});
-        canvas.addEventListener('touchmove', draw, {passive: false});
-        canvas.addEventListener('touchend', endDraw);
-
-
-        // === 2. 上傳與裁剪邏輯 ===
+        // === 裁剪邏輯 ===
         const fileInput = document.getElementById('fileInput');
         const cropperModal = document.getElementById('cropper-modal');
         const imageToCrop = document.getElementById('image-to-crop');
-        const uploadPreview = document.getElementById('upload-preview');
         let cropper = null;
 
         fileInput.addEventListener('change', function(e) {
@@ -307,99 +287,84 @@
             }
             fileInput.value = '';
         });
-
         function closeCropper() { cropperModal.style.display = 'none'; }
-
         function confirmCrop() {
             if (!cropper) return;
-            // 轉成 DataURL (Base64) 方便顯示與傳送
-            const croppedDataUrl = cropper.getCroppedCanvas({
-                maxWidth: 800, maxHeight: 800, fillColor: '#fff'
-            }).toDataURL('image/jpeg');
-
-            uploadPreview.src = croppedDataUrl;
-            uploadPreview.style.display = 'block';
-            
-            // 儲存這個 DataURL 準備傳送
-            uploadBlob = croppedDataUrl; 
-            
+            const croppedDataUrl = cropper.getCroppedCanvas({ maxWidth: 800, maxHeight: 800, fillColor: '#fff' }).toDataURL('image/jpeg');
+            document.getElementById('upload-preview').src = croppedDataUrl;
+            document.getElementById('upload-preview').style.display = 'block';
+            uploadBlob = croppedDataUrl;
             closeCropper();
         }
 
-
-        // === 3. 整合與送出 (修復 415 錯誤的關鍵) ===
         function switchTab(mode) {
             currentMode = mode;
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            
             if(mode === 'draw') {
                 document.querySelectorAll('.tab')[0].classList.add('active');
                 document.getElementById('tab-draw').classList.add('active');
-                setTimeout(resizeCanvas, 50); // 切換回來時重繪以防跑版
+                setTimeout(resizeCanvas, 50);
             } else {
                 document.querySelectorAll('.tab')[1].classList.add('active');
                 document.getElementById('tab-upload').classList.add('active');
             }
         }
 
+        // === 核心：送出並顯示 Top 3 ===
         function submitData() {
             const loader = document.getElementById('loader');
             const resultArea = document.getElementById('result-area');
-            const predText = document.getElementById('pred-text');
-            const confText = document.getElementById('conf-text');
+            
+            let finalImageBase64 = currentMode === 'draw' ? canvas.toDataURL('image/png') : uploadBlob;
+            if (!finalImageBase64 && currentMode === 'upload') { alert('請先選擇圖片'); return; }
 
-            let finalImageBase64 = '';
-
-            // 判斷當前模式，抓取對應的圖片資料
-            if (currentMode === 'draw') {
-                // 從畫布抓取 Base64
-                finalImageBase64 = canvas.toDataURL('image/png');
-            } else {
-                // 從上傳區抓取
-                if (!uploadBlob) {
-                    alert('請先選擇並裁剪圖片');
-                    return;
-                }
-                finalImageBase64 = uploadBlob;
-            }
-
-            // 顯示讀取中
             loader.style.display = 'block';
             resultArea.style.display = 'none';
 
-            // 🌟 關鍵修正：這裡改用 fetch 發送 JSON，解決 415 錯誤
-            // 這樣你的後端 app.py 可以繼續使用 request.get_json() 接收，不用改後端！
             fetch('/predict', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json' // 告訴後端這是 JSON
-                },
-                body: JSON.stringify({
-                    image: finalImageBase64 // 統一包成 JSON 格式
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: finalImageBase64 })
             })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Server response was not ok.');
-                }
-                return response.json();
-            })
+            .then(res => res.json())
             .then(data => {
                 loader.style.display = 'none';
                 resultArea.style.display = 'block';
-                if (data.error) {
-                    predText.innerText = "錯誤";
-                    confText.innerText = data.error;
+
+                if (data.success) {
+                    // 渲染排行榜函式
+                    const renderList = (items) => {
+                        return items.map((item, index) => {
+                            // 支援 Python 回傳字典 {'label': '王羲之', 'prob': 0.9} 
+                            // 或是 Tuples ['王羲之', 0.9]
+                            let name = item.label || item[0];
+                            let prob = item.prob || item[1];
+                            // 轉成百分比
+                            let percentage = (prob * 100).toFixed(1);
+                            
+                            return `
+                                <div class="rank-row">
+                                    <div class="rank-num">#${index + 1}</div>
+                                    <div class="rank-name">${name}</div>
+                                    <div class="progress-bg">
+                                        <div class="progress-bar" style="width: ${percentage}%"></div>
+                                    </div>
+                                    <div class="rank-score">${percentage}%</div>
+                                </div>
+                            `;
+                        }).join('');
+                    };
+
+                    document.getElementById('author-list').innerHTML = renderList(data.top3_authors);
+                    document.getElementById('style-list').innerHTML = renderList(data.top3_styles);
                 } else {
-                    predText.innerText = `${data.author} (${data.style})`;
-                    confText.innerText = `信心水準: ${data.confidence}`;
+                    alert('錯誤: ' + (data.error || '未知錯誤'));
                 }
             })
-            .catch(error => {
+            .catch(err => {
                 loader.style.display = 'none';
-                alert('辨識失敗，請檢查網路或稍後再試。\n' + error);
-                console.error(error);
+                alert('連線失敗: ' + err);
             });
         }
     </script>

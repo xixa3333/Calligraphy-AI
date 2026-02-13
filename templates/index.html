@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>書法手寫辨識</title>
+    <style>
+        body { text-align: center; font-family: "Microsoft JhengHei", Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+        canvas { border: 2px solid #333; background: white; cursor: crosshair; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .controls { margin-top: 20px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 0 5px; border-radius: 4px; border: 1px solid #ccc; }
+        .btn-upload { background-color: #5cb85c; color: white; border: none; }
+        .btn-predict { background-color: #0275d8; color: white; border: none; }
+        
+        /* 佈局容器 */
+        .container { display: flex; justify-content: center; align-items: flex-start; gap: 30px; margin-top: 20px; }
+        
+        /* 右側面板樣式 */
+        #result-panel { 
+            width: 350px; text-align: left; background: white; padding: 25px; 
+            border-radius: 8px; border: 1px solid #ddd; min-height: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .rank-item { margin: 10px 0; font-size: 16px; display: flex; justify-content: space-between; }
+        .rank-name { font-weight: 500; }
+        .rank-value { color: #666; }
+        
+        /* 頁腳資料來源 */
+        .footer { margin-top: 50px; font-size: 14px; color: #888; border-top: 1px solid #ddd; padding-top: 20px; }
+        .footer a { color: #0275d8; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <h1>書法手寫辨識</h1>
+    <p>請在下方區域寫字，或上傳圖片進行辨識：</p>
+    請注意：本系統僅支援「單個字」辨識！<br>
+
+    <div style="display: flex; justify-content: center; align-items: flex-start; gap: 30px; margin-top: 20px;">
+        
+        <div>
+            <canvas id="canvas" width="400" height="400"></canvas>
+            <div class="controls">
+                <button onclick="clearCanvas()">清除</button>
+                <button onclick="predict()">送出辨識</button>
+                <input type="file" id="imageInput" accept="image/*" capture="camera" style="display:none;">
+                <button onclick="document.getElementById('imageInput').click()">拍照或上傳字跡</button>
+                <br><br>
+                <span>畫筆大小: </span>
+                <input type="range" id="sizeRange" min="1" max="30" value="5" oninput="updateSize(this.value)">
+                <span id="sizeValue">5</span>
+            </div>
+        </div>
+
+        <div id="result-panel" style="width: 350px; text-align: left; background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; min-height: 400px;">
+            <div id="main-result" style="font-size: 22px; font-weight: bold; color: #d9534f; margin-bottom: 20px; border-bottom: 2px solid #f4f4f4; padding-bottom: 10px;">
+                等待辨識...
+            </div>
+            <div id="details">
+                </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>資料來源：<a href="https://www.kaggle.com/datasets/yuanhaowang486/chinese-calligraphy-styles-by-calligraphers" target="_blank">Kaggle - Chinese Calligraphy Styles by Calligraphers</a></p>
+    </div>
+
+    <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
+
+    // 初始化畫布
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    function updateSize(val) {
+        ctx.lineWidth = val;
+        document.getElementById('sizeValue').innerText = val;
+    }
+
+    // --- 新增：處理檔案上傳邏輯 ---
+    function handleFileUpload(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    // 1. 先清空畫布
+                    clearCanvas();
+                    // 2. 將圖片繪製到畫布上 (並縮放到適合 400x400 的大小)
+                    ctx.drawImage(img, 0, 0, 400, 400);
+                    // 3. 直接觸發辨識
+                    predict();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+            input.value = '';
+        }
+    }
+
+    // 繪圖邏輯保持不變...
+    canvas.onmousedown = (e) => {
+        drawing = true;
+        ctx.beginPath();
+        ctx.moveTo(e.offsetX, e.offsetY);
+    };
+    canvas.onmousemove = (e) => {
+        if (!drawing) return;
+        ctx.lineTo(e.offsetX, e.offsetY);
+        ctx.stroke();
+    };
+    canvas.onmouseup = () => { drawing = false; ctx.closePath(); };
+    canvas.onmouseleave = () => { drawing = false; };
+
+    function clearCanvas() {
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // 只清空內容，保留節點
+        const mainRes = document.getElementById('main-result');
+        const details = document.getElementById('details');
+        if (mainRes) mainRes.innerText = "";
+        if (details) details.innerHTML = "";
+    }
+
+    function predict() {
+        // --- [新增] 檢查畫布是否為空 ---
+        const canvasData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let isCanvasEmpty = true;
+
+        // RGBA 格式，每 4 個數字代表一個像素 (R, G, B, A)
+        // 因為我們是白底黑字，只要發現任何一個像素不是白色 (255, 255, 255)，就代表有畫東西
+        for (let i = 0; i < canvasData.length; i += 4) {
+            if (canvasData[i] < 250 || canvasData[i+1] < 250 || canvasData[i+2] < 250) {
+                isCanvasEmpty = false;
+                break;
+            }
+        }
+
+        if (isCanvasEmpty) {
+            alert("畫布是空的，請先寫字或上傳圖片喔！");
+            return; // 中止執行，不送出辨識
+        }
+        // ----------------------------
+
+        // 辨識中提示
+        document.getElementById('main-result').innerText = "辨識中...";
+        
+        const dataURL = canvas.toDataURL('image/png');
+        fetch('/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: dataURL })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const detailsDiv = document.getElementById('details');
+                detailsDiv.innerHTML = "";
+
+                let html = "<div style='display: flex; gap: 40px;'>";
+                html += "<div><strong>作者相似度：</strong><br>";
+                data.top3_authors.forEach((item, i) => {
+                    html += `${i+1}. ${item.name} (${item.confidence})<br>`;
+                });
+                html += "</div>";
+
+                html += "<div><strong>書體相似度：</strong><br>";
+                data.top3_styles.forEach((item, i) => {
+                    html += `${i+1}. ${item.name} (${item.confidence})<br>`;
+                });
+                html += "</div></div>";
+
+                detailsDiv.innerHTML = html;
+                document.getElementById('main-result').innerText = 
+                    `辨識完成！最接近：${data.top3_authors[0].name} (${data.top3_styles[0].name})`;
+            } else {
+                document.getElementById('main-result').innerText = "辨識失敗";
+                alert("錯誤: " + data.error);
+            }
+        });
+    }
+    </script>
+</body>
+</html>

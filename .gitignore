@@ -1,0 +1,26 @@
+# --- Python 暫存檔 (必選) ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- 虛擬環境 (非常重要！新增了 pack_env) ---
+venv/
+env/
+pack_env/
+
+# --- PyInstaller 打包產生的垃圾檔 ---
+build/
+dist/
+*.spec
+
+# --- IDE 設定檔 (VSCode/PyCharm) ---
+.vscode/
+.idea/
+
+# --- 資料集 (原始圖片通常不傳) ---
+data/
+
+# --- 其他系統檔 ---
+.DS_Store
+Thumbs.db

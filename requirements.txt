@@ -2,7 +2,7 @@ torch
 torchvision
 flask
 flask-cors
-opencv-python-headless
+opencv-contrib-python-headless
 numpy
 Pillow
 pandas

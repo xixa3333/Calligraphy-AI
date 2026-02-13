@@ -7,6 +7,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10-3776AB)](https://www.python.org/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0-EE4C2C)](https://pytorch.org/)
 [![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED)](https://www.docker.com/)
+![Visitor Count](https://visitor-badge.laobi.icu/badge?page_id=xixa3333.Calligraphy-AI)
 
 ---
 

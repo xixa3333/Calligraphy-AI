@@ -16,6 +16,8 @@
             --gold: #ffc107;
             --silver: #aaa;
             --bronze: #cd7f32;
+            --warning-bg: #fff3cd;
+            --warning-text: #856404;
         }
 
         body {
@@ -30,7 +32,21 @@
             min-height: 100vh;
         }
 
-        h1 { margin: 10px 0; font-size: 1.5rem; text-align: center; }
+        h1 { margin: 10px 0 5px 0; font-size: 1.5rem; text-align: center; }
+
+        /* 新增：提示訊息樣式 */
+        .hint-box {
+            background-color: var(--warning-bg);
+            color: var(--warning-text);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #ffeeba;
+        }
         
         /* 卡片容器 */
         .main-container {
@@ -69,7 +85,7 @@
         }
         #upload-preview { max-width: 100%; display: none; margin-top: 10px; border-radius: 8px; }
 
-        /* === 結果顯示區 (重寫支援 Top 3) === */
+        /* === 結果顯示區 === */
         #result-area {
             margin-top: 20px;
             padding-top: 10px;
@@ -107,20 +123,20 @@
         }
 
         .rank-num {
-            width: 20px;
+            width: 25px;
             font-weight: bold;
             text-align: center;
             margin-right: 5px;
             color: #888;
         }
         /* 前三名顏色 */
-        .rank-row:nth-child(1) .rank-num { color: var(--gold); font-size: 1.1rem; }
-        .rank-row:nth-child(2) .rank-num { color: var(--silver); }
-        .rank-row:nth-child(3) .rank-num { color: var(--bronze); }
+        .rank-row:nth-child(1) .rank-num { color: var(--gold); font-size: 1.2rem; }
+        .rank-row:nth-child(2) .rank-num { color: var(--silver); font-size: 1.1rem; }
+        .rank-row:nth-child(3) .rank-num { color: var(--bronze); font-size: 1.0rem; }
 
         .rank-name {
             flex: 1;
-            font-weight: 500;
+            font-weight: 600;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -145,17 +161,23 @@
         .rank-row:nth-child(1) .progress-bar { background: #ff9800; }
 
         .rank-score {
-            width: 35px;
+            width: 45px;
             text-align: right;
             font-size: 0.8rem;
             color: #666;
+            font-family: monospace; /* 數字對齊較美觀 */
         }
 
         /* 按鈕與讀取 */
         .submit-btn {
             width: 100%; padding: 12px; background: var(--primary-color); color: white;
             border: none; border-radius: 8px; font-size: 1.1rem; margin-top: 20px; cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
         }
+        .submit-btn:active { transform: scale(0.98); }
+
         .loader { display: none; margin: 10px auto; border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
@@ -163,7 +185,7 @@
         #cropper-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: none; flex-direction: column; }
         .cropper-wrapper { flex: 1; overflow: hidden; position: relative; }
         .cropper-actions { padding: 15px; display: flex; justify-content: space-between; background: #222; }
-        .c-btn { padding: 10px 20px; border-radius: 20px; border: none; font-weight: bold; }
+        .c-btn { padding: 10px 20px; border-radius: 20px; border: none; font-weight: bold; font-size: 1rem; cursor: pointer;}
         .btn-cancel { background: #555; color: white; }
         .btn-confirm { background: var(--primary-color); color: white; }
     </style>
@@ -171,6 +193,11 @@
 <body>
 
     <h1>🖌️ Calligraphy AI</h1>
+    
+    <div class="hint-box">
+        <i class="fas fa-exclamation-circle"></i>
+        <span>辨識前請先<strong>裁剪</strong>，且一次僅限輸入<strong>一個字</strong>。</span>
+    </div>
 
     <div class="main-container">
         <div class="tabs">
@@ -333,24 +360,22 @@
                 resultArea.style.display = 'block';
 
                 if (data.success) {
-                    // 渲染排行榜函式
+                    // 修正：這裡的 items 是 app.py 回傳的格式 [{'name': '王羲之', 'confidence': '99.00%'}, ...]
                     const renderList = (items) => {
                         return items.map((item, index) => {
-                            // 支援 Python 回傳字典 {'label': '王羲之', 'prob': 0.9} 
-                            // 或是 Tuples ['王羲之', 0.9]
-                            let name = item.label || item[0];
-                            let prob = item.prob || item[1];
-                            // 轉成百分比
-                            let percentage = (prob * 100).toFixed(1);
+                            let name = item.name || "未知";
+                            let confStr = item.confidence || "0%";
+                            // 將 "99.00%" 轉為數字 99.00 用於 CSS width
+                            let percentageVal = parseFloat(confStr); 
                             
                             return `
                                 <div class="rank-row">
                                     <div class="rank-num">#${index + 1}</div>
-                                    <div class="rank-name">${name}</div>
+                                    <div class="rank-name" title="${name}">${name}</div>
                                     <div class="progress-bg">
-                                        <div class="progress-bar" style="width: ${percentage}%"></div>
+                                        <div class="progress-bar" style="width: ${percentageVal}%"></div>
                                     </div>
-                                    <div class="rank-score">${percentage}%</div>
+                                    <div class="rank-score">${confStr}</div>
                                 </div>
                             `;
                         }).join('');

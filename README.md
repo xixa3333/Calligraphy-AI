@@ -1,13 +1,3 @@
----
-title: Calligraphy AI
-emoji: 🖋️
-colorFrom: blue
-colorTo: indigo
-sdk: docker
-app_port: 7860
-pinned: false
----
-
 # Calligraphy AI - 書法風格與名家辨識系統
 
 > **你的字跡像哪位古代名家？**

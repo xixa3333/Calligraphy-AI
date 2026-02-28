@@ -104,7 +104,7 @@ pinned: false
 
 ### 1. 安裝依賴
 ```bash
-git clone [https://huggingface.co/spaces/xixa3333/Calligraphy-AI](https://huggingface.co/spaces/xixa3333/Calligraphy-AI)
+git clone https://huggingface.co/spaces/xixa3333/Calligraphy-AI
 cd Calligraphy-AI
 pip install -r requirements.txt
 

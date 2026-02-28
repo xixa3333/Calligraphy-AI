@@ -92,3 +92,19 @@ def get_dataloaders(data_root, csv_path, batch_size=32, split_ratio=0.8):
     val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
     
     return train_loader, val_loader, full_dataset.num_authors, full_dataset.num_styles, all_author_labels, all_style_labels
+
+# 在 dataset.py 中新增
+def get_full_dataset(data_root, csv_path):
+    # 建立兩個 Dataset，一個用於訓練（有增強），一個用於驗證（無增強）
+    train_ds = CalligraphyDataset(data_root, csv_path, transform=train_transforms)
+    val_ds = CalligraphyDataset(data_root, csv_path, transform=None)
+    
+    # 標籤直接從 list 拿，秒開！
+    all_auth_lbls = np.array(train_ds.author_labels) 
+    all_style_lbls = np.array(train_ds.style_labels)
+    
+    num_authors = train_ds.num_authors
+    num_styles = train_ds.num_styles
+    
+    # 回傳兩個 Dataset
+    return train_ds, val_ds, num_authors, num_styles, all_auth_lbls, all_style_lbls

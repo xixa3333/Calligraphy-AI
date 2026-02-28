@@ -24,3 +24,5 @@ data/
 # --- 其他系統檔 ---
 .DS_Store
 Thumbs.db
+
+weights/best_model_fold_*.pth

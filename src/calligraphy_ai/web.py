@@ -21,7 +21,7 @@ def resource_path(relative_path):
     return os.path.join(os.path.abspath("."), relative_path)
 
 # --- 修改 Flask 設定，確保能找到 templates ---
-app = Flask(__name__, template_folder=resource_path('templates'))
+app = Flask(__name__)
 
 # --- 配置與載入 (全部使用 resource_path 包裹) ---
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

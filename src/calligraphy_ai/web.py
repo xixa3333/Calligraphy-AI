@@ -8,8 +8,9 @@ import numpy as np
 import base64
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
-from core.model import MultiTaskCNN
-from core.preprocess import calligraphy_preprocess
+from calligraphy_ai.core.model import MultiTaskCNN
+from calligraphy_ai.core.preprocess import calligraphy_preprocess
+from calligraphy_ai.paths import LOGS_DIR, WEIGHTS_DIR
 
 # --- [新增] 資源路徑處理函式 ---
 def resource_path(relative_path):
@@ -25,8 +26,8 @@ app = Flask(__name__, template_folder=resource_path('templates'))
 # --- 配置與載入 (全部使用 resource_path 包裹) ---
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # 修改路徑
-MODEL_PATH = resource_path(os.path.join('weights', 'best_model.pth'))
-CSV_PATH = resource_path(os.path.join('logs', 'Summary.csv'))
+MODEL_PATH = WEIGHTS_DIR / 'best_model.pth'
+CSV_PATH = LOGS_DIR / 'Summary.csv'
 IMG_SIZE = 128
 
 # 載入 Label 編碼器與對照表

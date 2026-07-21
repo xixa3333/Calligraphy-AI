@@ -6,7 +6,7 @@ import pandas as pd
 from torch.utils.data import Dataset, DataLoader, random_split
 from sklearn.preprocessing import LabelEncoder
 from torchvision import transforms
-from core.preprocess import calligraphy_preprocess
+from calligraphy_ai.core.preprocess import calligraphy_preprocess
 
 # --- 定義數據增強 (僅用於訓練集) ---
 # 針對書法圖片，輕微的旋轉和位移是合理的，但不建議翻轉 (Flip)

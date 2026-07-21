@@ -1,28 +1,25 @@
-# --- Python 暫存檔 (必選) ---
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
 
-# --- 虛擬環境 (非常重要！新增了 pack_env) ---
+# Virtual environments
+.venv/
 venv/
 env/
 pack_env/
 
-# --- PyInstaller 打包產生的垃圾檔 ---
+# Build and IDE output
 build/
 dist/
 *.spec
-
-# --- IDE 設定檔 (VSCode/PyCharm) ---
 .vscode/
 .idea/
 
-# --- 資料集 (原始圖片通常不傳) ---
-data/
+# Local datasets and generated fold checkpoints
+artifacts/data/
+artifacts/root_pycache/
+artifacts/weights/best_model_fold_*.pth
 
-# --- 其他系統檔 ---
+# Operating systems
 .DS_Store
 Thumbs.db
-
-weights/best_model_fold_*.pth

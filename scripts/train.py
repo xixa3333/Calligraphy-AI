@@ -2,18 +2,19 @@ import torch
 import torch.optim as optim
 import numpy as np
 from sklearn.utils.class_weight import compute_class_weight
-from dataset import get_dataloaders
-from core.model import MultiTaskCNN, MultiTaskLoss
-from core.trainer import train_one_epoch, validate
-from core.visualize import plot_history
+from calligraphy_ai.dataset import get_dataloaders
+from calligraphy_ai.core.model import MultiTaskCNN, MultiTaskLoss
+from calligraphy_ai.core.trainer import train_one_epoch, validate
+from calligraphy_ai.core.visualize import plot_history
+from calligraphy_ai.paths import DATA_DIR, LOGS_DIR, WEIGHTS_DIR
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from utils.utils import EarlyStopping 
+from calligraphy_ai.utils.utils import EarlyStopping
 import random
 import os
 
 # --- 設定參數 ---
-DATA_ROOT = 'data'
-CSV_PATH = 'logs/Summary.csv'
+DATA_ROOT = DATA_DIR
+CSV_PATH = LOGS_DIR / 'Summary.csv'
 BATCH_SIZE = 32
 LEARNING_RATE = 0.001
 EPOCHS = 50
@@ -89,7 +90,7 @@ def main():
 
     scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
     
-    early_stopping = EarlyStopping(patience=8, verbose=True, path='weights/best_model.pth')
+    early_stopping = EarlyStopping(patience=8, verbose=True, path=WEIGHTS_DIR / 'best_model.pth')
 
     # 4. 開始訓練
     history = {'train_loss': [], 'val_loss': [], 'val_acc_author': [], 'val_acc_style': []}
@@ -122,7 +123,7 @@ def main():
             break
 
     print("載入表現最好的模型權重...")
-    model.load_state_dict(torch.load('weights/best_model.pth'))
+    model.load_state_dict(torch.load(WEIGHTS_DIR / 'best_model.pth', map_location=DEVICE))
 
     plot_history(history)
     print("訓練完成！")

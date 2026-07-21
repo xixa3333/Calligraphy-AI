@@ -7,15 +7,16 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import accuracy_score, classification_report
 from tqdm import tqdm
-from core.preprocess import calligraphy_preprocess
+from calligraphy_ai.core.preprocess import calligraphy_preprocess
+from calligraphy_ai.paths import DATA_DIR, LOGS_DIR, WEIGHTS_DIR
 
 # 引用你的模型架構
-from core.model import MultiTaskCNN
+from calligraphy_ai.core.model import MultiTaskCNN
 
 # --- 設定參數 ---
-csv_path = 'logs/Summary.csv'
-model_path = 'weights/best_model.pth'  # 訓練好的權重檔
-test_dir = 'data/test'         # 測試集資料夾 (如果有的話)
+csv_path = LOGS_DIR / 'Summary.csv'
+model_path = WEIGHTS_DIR / 'best_model.pth'
+test_dir = DATA_DIR / 'test'
 img_size = 128
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

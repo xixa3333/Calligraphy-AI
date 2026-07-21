@@ -11,15 +11,16 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # 複製並安裝 Python 套件
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY config/requirements.txt /app/config/requirements.txt
+RUN pip install --no-cache-dir -r /app/config/requirements.txt
 
 # 複製所有專案檔案
 COPY . .
 
 # 設定 Hugging Face 預設埠號
-ENV FLASK_APP=app.py
+ENV PYTHONPATH=/app/src
+ENV FLASK_APP=calligraphy_ai.web
 EXPOSE 7860
 
 # 啟動 Flask
-CMD ["python", "app.py"]
+CMD ["python", "-m", "calligraphy_ai.web"]

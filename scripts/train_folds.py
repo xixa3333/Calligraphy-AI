@@ -7,18 +7,18 @@ from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import DataLoader, SubsetRandomSampler
 
 # 保持你原本的引用
-from dataset import get_dataloaders, CalligraphyDataset,get_full_dataset # 假設你 dataset.py 裡有這個類別
-from core.model import MultiTaskCNN, MultiTaskLoss
-from core.trainer import train_one_epoch, validate
-from core.visualize import plot_history
+from calligraphy_ai.dataset import get_full_dataset
+from calligraphy_ai.core.model import MultiTaskCNN, MultiTaskLoss
+from calligraphy_ai.core.trainer import train_one_epoch, validate
+from calligraphy_ai.paths import DATA_DIR, LOGS_DIR, WEIGHTS_DIR
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from utils.utils import EarlyStopping 
+from calligraphy_ai.utils.utils import EarlyStopping
 import random
 import os
 
 # --- 設定參數 ---
-DATA_ROOT = 'data'
-CSV_PATH = 'logs/Summary.csv'
+DATA_ROOT = DATA_DIR
+CSV_PATH = LOGS_DIR / 'Summary.csv'
 BATCH_SIZE = 32
 LEARNING_RATE = 0.001
 EPOCHS = 50
@@ -90,7 +90,7 @@ def main():
         optimizer = optim.AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=1e-4)
         scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
         
-        fold_model_path = f'weights/best_model_fold_{fold+1}.pth'
+        fold_model_path = WEIGHTS_DIR / f'best_model_fold_{fold+1}.pth'
         # 建議 EarlyStopping 的 path 也要隨 fold 改變
         early_stopping = EarlyStopping(patience=8, verbose=True, path=fold_model_path)
 
@@ -119,7 +119,7 @@ def main():
             best_overall_avg_acc = current_avg
             best_fold_idx = fold + 1
             # 儲存全域最佳模型
-            torch.save(model.state_dict(), 'weights/best_model.pth')
+            torch.save(model.state_dict(), WEIGHTS_DIR / 'best_model.pth')
 
     # 4. 統計運算
     a_mean, a_var, a_ci = calculate_confidence_interval(fold_auth_accs)
@@ -144,5 +144,5 @@ def main():
 
 if __name__ == '__main__':
     # 確保資料夾存在
-    os.makedirs('weights', exist_ok=True)
+    WEIGHTS_DIR.mkdir(parents=True, exist_ok=True)
     main()

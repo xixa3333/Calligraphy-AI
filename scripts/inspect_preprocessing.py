@@ -3,7 +3,8 @@ import random
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-from core.preprocess import calligraphy_preprocess
+from calligraphy_ai.core.preprocess import calligraphy_preprocess
+from calligraphy_ai.paths import DATA_DIR
 
 def check_random_samples(data_root, num_samples=10):
     all_images = []
@@ -47,4 +48,4 @@ def check_random_samples(data_root, num_samples=10):
 
 if __name__ == "__main__":
     # 請確認路徑指向你的訓練資料夾
-    check_random_samples('data/train')
+    check_random_samples(DATA_DIR / 'train')

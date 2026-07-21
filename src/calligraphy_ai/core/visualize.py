@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 
-def plot_history(history, save_path='logs/training_result.png'):
+def plot_history(history, save_path=None):
+    if save_path is None:
+        from calligraphy_ai.paths import LOGS_DIR
+        save_path = LOGS_DIR / 'training_result.png'
     """
     輸入 history 字典，輸出折線圖
     history keys: 'train_loss', 'val_loss', 'val_acc_author', 'val_acc_style'

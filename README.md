@@ -1,3 +1,14 @@
+---
+title: Calligraphy AI
+emoji: 🖌️
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+python_version: "3.10"
+app_port: 7860
+pinned: false
+---
+
 # Calligraphy AI
 
 以多任務卷積神經網路辨識中文書法作品的書法家與字體風格。專案包含 Flask 網頁介面、影像骨架化前處理、模型訓練、5-fold 交叉驗證與測試工具。
@@ -9,13 +20,13 @@
 ```text
 artifacts/                資料集、模型權重與訓練報表
 config/requirements.txt  Python 相依套件
-deploy/Dockerfile         容器設定
+Dockerfile                Hugging Face 與本機容器設定
 scripts/                  訓練、預測與檢查工具
 src/calligraphy_ai/       應用程式套件
 README.md                 專案說明
 ```
 
-根目錄只保留 README 作為一般檔案；Git 所需的 `.gitignore`、`.gitattributes` 等隱藏檔仍保留。
+根目錄只保留 README 與 Hugging Face Docker Space 必須使用的 Dockerfile；Git 所需的 `.gitignore`、`.gitattributes` 等隱藏檔仍保留。
 
 ## 安裝與啟動
 
@@ -45,7 +56,7 @@ python scripts\inspect_preprocessing.py
 ## Docker
 
 ```bash
-docker build -f deploy/Dockerfile -t calligraphy-ai .
+docker build -t calligraphy-ai .
 docker run --rm -p 7860:7860 calligraphy-ai
 ```
 

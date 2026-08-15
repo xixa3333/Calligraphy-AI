@@ -1,12 +1,15 @@
 import os
+import random
 import cv2
 import numpy as np
 import torch
 import pandas as pd
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset, DataLoader, Subset
 from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
 from torchvision import transforms
 from calligraphy_ai.core.preprocess import calligraphy_preprocess
+from calligraphy_ai.paths import PREPROCESSED_DIR
 
 # --- 定義數據增強 (僅用於訓練集) ---
 # 針對書法圖片，輕微的旋轉和位移是合理的，但不建議翻轉 (Flip)
@@ -18,14 +21,29 @@ train_transforms = transforms.Compose([
 ])
 
 def preprocess_image_to_array(img_path, target_size=128):
-    img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    encoded = np.fromfile(img_path, dtype=np.uint8)
+    img = cv2.imdecode(encoded, cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        raise ValueError(f"Unable to decode image: {img_path}")
     return calligraphy_preprocess(img, target_size)
 
 class CalligraphyDataset(Dataset):
-    def __init__(self, root_dir, csv_path, phase='train', img_size=128, transform=None):
+    def __init__(
+        self,
+        root_dir,
+        csv_path,
+        phase='train',
+        img_size=128,
+        transform=None,
+        use_preprocessed=True,
+    ):
         self.phase_path = os.path.join(root_dir, phase)
         self.img_size = img_size
         self.transform = transform
+        self.phase = phase
+        self.use_preprocessed = (
+            use_preprocessed and (PREPROCESSED_DIR / ".complete").exists()
+        )
         self.image_paths = []
         self.author_labels = []
         self.style_labels = []
@@ -40,7 +58,7 @@ class CalligraphyDataset(Dataset):
         label_to_style = dict(zip(df['Label'], df['Style']))
 
         # 掃描資料夾
-        for label_name in os.listdir(self.phase_path):
+        for label_name in sorted(os.listdir(self.phase_path)):
             label_dir = os.path.join(self.phase_path, label_name)
             if not os.path.isdir(label_dir):
                 continue
@@ -53,7 +71,7 @@ class CalligraphyDataset(Dataset):
                 # 簡單的過採樣策略：如果資料量特別少(例如行草)，可以考慮在這裡重複路徑
                 # 但因為我們採用了 Weighted Loss，這裡可以保持原始分佈，讓 Loss 去處理平衡問題
                 
-                for img_name in os.listdir(label_dir):
+                for img_name in sorted(os.listdir(label_dir)):
                     if img_name.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp')):
                         self.image_paths.append(os.path.join(label_dir, img_name))
                         self.author_labels.append(author_idx)
@@ -67,7 +85,15 @@ class CalligraphyDataset(Dataset):
 
     def __getitem__(self, idx):
         path = self.image_paths[idx]
-        img_arr = preprocess_image_to_array(path, self.img_size)
+        if self.use_preprocessed:
+            source_path = os.path.relpath(path, self.phase_path)
+            cached_path = PREPROCESSED_DIR / self.phase / f"{source_path}.npy"
+            try:
+                img_arr = np.load(cached_path, allow_pickle=False).astype(np.float32) / 255.0
+            except (OSError, ValueError) as error:
+                raise RuntimeError(f"Unable to load preprocessed image: {cached_path}") from error
+        else:
+            img_arr = preprocess_image_to_array(path, self.img_size)
         img_tensor = torch.from_numpy(img_arr).unsqueeze(0) # (1, H, W)
 
         if self.transform:
@@ -75,23 +101,68 @@ class CalligraphyDataset(Dataset):
         
         return img_tensor, self.author_labels[idx], self.style_labels[idx]
 
-def get_dataloaders(data_root, csv_path, batch_size=32, split_ratio=0.8):
-    full_dataset = CalligraphyDataset(data_root, csv_path, phase='train', transform=train_transforms)
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % (2**32)
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
+
+def get_dataloaders(
+    data_root,
+    csv_path,
+    batch_size=32,
+    split_ratio=0.8,
+    random_state=42,
+    num_workers=0,
+):
+    """Create a stratified split and augment training samples only."""
+    train_dataset = CalligraphyDataset(
+        data_root, csv_path, phase='train', transform=train_transforms
+    )
+    val_dataset = CalligraphyDataset(
+        data_root, csv_path, phase='train', transform=None
+    )
+
+    if train_dataset.image_paths != val_dataset.image_paths:
+        raise RuntimeError("Training and validation datasets are not index-aligned.")
+
+    # Split once, then apply the same indices to augmented and clean datasets.
+    all_author_labels = np.asarray(train_dataset.author_labels)
+    all_style_labels = np.asarray(train_dataset.style_labels)
     
-    # [關鍵] 回傳所有標籤，以便 main.py 計算 Loss 權重
-    all_author_labels = full_dataset.author_labels
-    all_style_labels = full_dataset.style_labels
+    indices = np.arange(len(train_dataset))
     
-    train_size = int(split_ratio * len(full_dataset))
-    val_size = len(full_dataset) - train_size
+    train_indices, val_indices = train_test_split(
+        indices,
+        train_size=split_ratio,
+        random_state=random_state,
+        shuffle=True,
+        stratify=all_author_labels,
+    )
+    train_set = Subset(train_dataset, train_indices)
+    val_set = Subset(val_dataset, val_indices)
     
-    # 驗證集建議不要做隨機增強，因此這裡簡單切分 (若求嚴謹可建立第二個無 transform 的 dataset)
-    train_set, val_set = random_split(full_dataset, [train_size, val_size])
+    generator = torch.Generator().manual_seed(random_state)
+    loader_options = {
+        "batch_size": batch_size,
+        "num_workers": num_workers,
+        "pin_memory": torch.cuda.is_available(),
+        "persistent_workers": num_workers > 0,
+        "worker_init_fn": seed_worker if num_workers > 0 else None,
+    }
+    train_loader = DataLoader(
+        train_set, shuffle=True, generator=generator, **loader_options
+    )
+    val_loader = DataLoader(val_set, shuffle=False, **loader_options)
     
-    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
-    
-    return train_loader, val_loader, full_dataset.num_authors, full_dataset.num_styles, all_author_labels, all_style_labels
+    return (
+        train_loader,
+        val_loader,
+        train_dataset.num_authors,
+        train_dataset.num_styles,
+        all_author_labels[train_indices],
+        all_style_labels[train_indices],
+    )
 
 # 在 dataset.py 中新增
 def get_full_dataset(data_root, csv_path):

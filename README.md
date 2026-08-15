@@ -1,6 +1,6 @@
 ---
 title: Calligraphy AI
-emoji: 🖌️
+emoji: ✍️
 colorFrom: blue
 colorTo: indigo
 sdk: docker
@@ -11,66 +11,90 @@ pinned: false
 
 # Calligraphy AI
 
-以多任務卷積神經網路辨識中文書法作品的書法家與字體風格。專案包含 Flask 網頁介面、影像骨架化前處理、模型訓練、5-fold 交叉驗證與測試工具。
+中文書法家與書體的多任務影像分類專案。專案分為模型訓練與網站部署兩個獨立區塊。
 
-[Hugging Face Space](https://huggingface.co/spaces/xixa3333/Calligraphy-AI)
+目前網站正式部署模型為 **Shared Linear 5-fold 的 Fold 5 `best.pt`**。Fold 5 依最低 validation loss 選出，未使用 test set 反向挑選模型。
 
-## 專案結構
+## 正式模型表現
+
+固定 Kaggle test set 共 21,007 張圖片：
+
+| 指標 | Fold 5 |
+| --- | ---: |
+| Author Accuracy | 93.12% |
+| Author Top-3 Accuracy | 98.56% |
+| Author Macro F1 | 0.9078 |
+| Style Accuracy | 95.09% |
+| Style Top-3 Accuracy | 99.70% |
+| Style Macro F1 | 0.9237 |
+| Joint Accuracy | 91.53% |
+| Combined Loss | 0.3729 |
+
+五折平均為 Author Accuracy 92.95%、Style Accuracy 94.87%、Joint Accuracy 91.26%。完整分析請參考 [5-fold 穩定性評估](train_model/docs/5fold評判穩定性.md)與[三模型比較](train_model/docs/20260814_model_comparison.md)。
+
+## 目錄
 
 ```text
-artifacts/                資料集、模型權重與訓練報表
-config/requirements.txt  Python 相依套件
-Dockerfile                Hugging Face 與本機容器設定
-scripts/                  訓練、預測與檢查工具
-src/calligraphy_ai/       應用程式套件
-README.md                 專案說明
+train_model/
+├── artifacts/       資料集、前處理快取、訓練結果與歷史模型
+├── scripts/         前處理、訓練、評估及比較工具
+├── src/             訓練用 Python 套件
+└── requirements.txt 訓練環境相依套件
+
+web/
+├── artifacts/       網站正式模型與標籤資料
+├── templates/       網頁模板
+├── app.py           Flask 入口
+├── core/            Shared Linear 模型與推論影像前處理
+└── requirements.txt 網站環境相依套件
 ```
 
-根目錄只保留 README 與 Hugging Face Docker Space 必須使用的 Dockerfile；Git 所需的 `.gitignore`、`.gitattributes` 等隱藏檔仍保留。
+根目錄只保留說明文件，以及 Git、Codex 和 Hugging Face Docker Space 必須使用的隱藏檔或設定檔。`Dockerfile` 只會打包 `web/`，不會把訓練資料與實驗模型部署到網站。
 
-## 安裝與啟動
-
-需要 Python 3.10。PowerShell：
+## 訓練
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r config\requirements.txt
+cd train_model
+..\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 $env:PYTHONPATH = "src"
-python -m calligraphy_ai.web
+python scripts\train.py
 ```
 
-開啟 <http://127.0.0.1:7860>。
-
-## 常用指令
-
-執行前請先設定 `PYTHONPATH=src`。
+執行可中斷續訓的 Shared Linear 5-fold：
 
 ```powershell
-python scripts\train.py
 python scripts\train_folds.py
-python scripts\predict.py
-python scripts\inspect_preprocessing.py
 ```
+
+其他工具：
+
+```powershell
+python scripts\preprocess_dataset.py
+python scripts\evaluate.py
+python scripts\compare_runs.py
+```
+
+## 啟動網站
+
+```powershell
+cd web
+..\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python app.py
+```
+
+網站使用 `web/artifacts/production/weight/best.pt`（目前為 Fold 5），並從 `web/artifacts/production/metadata/Summary.csv` 讀取分類標籤。
 
 ## Docker
+
+請在專案根目錄執行：
 
 ```bash
 docker build -t calligraphy-ai .
 docker run --rm -p 7860:7860 calligraphy-ai
 ```
 
-## 模型結果
+資料集來源：[Chinese Calligraphy Styles by Calligraphers](https://www.kaggle.com/datasets/yuanhaowang486/chinese-calligraphy-styles-by-calligraphers)
 
-以 84,022 張影像進行 5-fold 交叉驗證：
-
-| 任務 | 平均準確率 | 95% 信賴區間 |
-| --- | ---: | ---: |
-| 書法家辨識 | 93.14% | 92.75%–93.54% |
-| 字體風格辨識 | 94.80% | 94.34%–95.25% |
-
-測試集共 21,007 張影像，書法家辨識準確率為 93.51%，字體風格辨識準確率為 94.89%。
-
-## 資料來源
-
-[Chinese Calligraphy Styles by Calligraphers](https://www.kaggle.com/datasets/yuanhaowang486/chinese-calligraphy-styles-by-calligraphers)
+線上展示：[Hugging Face Space](https://huggingface.co/spaces/xixa3333/Calligraphy-AI)

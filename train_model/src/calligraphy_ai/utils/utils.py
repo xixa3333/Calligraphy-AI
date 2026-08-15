@@ -1,5 +1,22 @@
+import os
+import random
+
 import numpy as np
 import torch
+
+
+def set_seed(seed=42):
+    """Seed Python, NumPy, PyTorch and deterministic CUDA behavior."""
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    print(f"Random seed: {seed}")
 
 class EarlyStopping:
     """
@@ -48,3 +65,17 @@ class EarlyStopping:
             self.trace_func(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
         torch.save(model.state_dict(), self.path)
         self.val_loss_min = val_loss
+
+    def state_dict(self):
+        return {
+            'counter': self.counter,
+            'best_score': self.best_score,
+            'early_stop': self.early_stop,
+            'val_loss_min': self.val_loss_min,
+        }
+
+    def load_state_dict(self, state):
+        self.counter = state['counter']
+        self.best_score = state['best_score']
+        self.early_stop = state['early_stop']
+        self.val_loss_min = state['val_loss_min']

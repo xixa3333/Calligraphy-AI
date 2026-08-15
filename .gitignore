@@ -16,9 +16,13 @@ dist/
 .idea/
 
 # Local datasets and generated fold checkpoints
-artifacts/data/
-artifacts/root_pycache/
-artifacts/weights/best_model_fold_*.pth
+train_model/artifacts/data/
+train_model/artifacts/root_pycache/
+train_model/artifacts/weights/
+train_model/artifacts/runs/
+train_model/artifacts/preprocessed/
+train_model/artifacts/logs/*.log
+train_model/artifacts/logs/*.pid
 
 # Operating systems
 .DS_Store
